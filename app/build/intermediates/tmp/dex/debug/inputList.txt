@@ -1,0 +1,3 @@
+/Users/mmz/Development/TU/MMI/projectworkspace/mmi_wikitude/app/build/intermediates/classes/debug
+/Users/mmz/Development/TU/MMI/projectworkspace/mmi_wikitude/app/build/intermediates/pre-dexed/debug/support-v4-19.1.0-604a427787438e8456cd8f0ed9b87359d6167e32.jar
+/Users/mmz/Development/TU/MMI/projectworkspace/mmi_wikitude/app/build/intermediates/pre-dexed/debug/wikitudesdk-cc840940e99d398a684e88c36fa785b7a3b50f00.jar

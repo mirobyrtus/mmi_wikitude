@@ -4,6 +4,8 @@ var World = {
 	trackableVisible: false,
     isGameOver: false,
     points: new Date().getTime(),
+    enemiesDestroyed: 0,
+    level: 1,
 
 	init: function initFn() {
 		this.createOverlays();
@@ -22,13 +24,13 @@ var World = {
 		});
 
 		/*
-			3D content within Wikitude can only be loaded from Wikitude 3D Format files (.wt3). This is a compressed binary format for describing 3D content which is optimized for fast loading and handling of 3D content on a mobile device. You still can use 3D models from your favorite 3D modeling tools (Autodesk® Maya® or Blender) but you'll need to convert them into the wt3 file format. The Wikitude 3D Encoder desktop application (Windows and Mac) encodes your 3D source file. You can download it from our website. The Encoder can handle Autodesk® FBX® files (.fbx) and the open standard Collada (.dae) file formats for encoding to .wt3. 
+			3D content within Wikitude can only be loaded from Wikitude 3D Format files (.wt3). This is a compressed binary format for describing 3D content which is optimized for fast loading and handling of 3D content on a mobile device. You still can use 3D models from your favorite 3D modeling tools (Autodesk® Maya® or Blender) but you'll need to convert them into the wt3 file format. The Wikitude 3D Encoder desktop application (Windows and Mac) encodes your 3D source file. You can download it from our website. The Encoder can handle Autodesk® FBX® files (.fbx) and the open standard Collada (.dae) file formats for encoding to .wt3.
 
 			Create an AR.Model and pass the URL to the actual .wt3 file of the model. Additional options allow for scaling, rotating and positioning the model in the scene.
 
 			A function is attached to the onLoaded trigger to receive a notification once the 3D model is fully loaded. Depending on the size of the model and where it is stored (locally or remotely) it might take some time to completely load and it is recommended to inform the user about the loading time.
 		*/
-		this.modelCar = new AR.Model("assets/goose.wt3", { // "assets/car.wt3", {
+		this.modelGoose = new AR.Model("assets/goose.wt3", {
 			onLoaded: this.loadingStep,
 			scale: {
 				x: 0.0,
@@ -43,54 +45,52 @@ var World = {
 			rotate: {
 				roll: -25
 			}
-			/*
-            , onClick : function() {
-                this.translate.x += 0.1;
-            }
-            */
 		});
 
-        this.imgRotate = new AR.ImageResource("assets/axe.png"); // "assets/rotateButton.png");
-        /*
-        this.buttonRotate = new AR.ImageDrawable(this.imgRotate, 0.2, {
-            offsetX: 0.5,
-            offsetY: 0.5
-        });
-        */
+        /* Image of axe - enemy */
+        this.imgAxe = new AR.ImageResource("assets/axe.png");
 
-        this.buttonsRotate = [];
+        /* Array of axes - enemies */
+        this.axes = [];
         for (i = 0; i < 4; i++) {
-            this.buttonsRotate.push(new AR.ImageDrawable(this.imgRotate, 0.2, {
+            this.axes.push(new AR.ImageDrawable(this.imgAxe, 0.2, {
                 offsetX: World.getRandomOffset(),
                 offsetY: World.getRandomOffset(),
                 onClick : function() { // Use Events.Onclick(ARDrawable) instead
                     this.offsetX = World.getRandomOffset();
                     this.offsetY = World.getRandomOffset();
+                    if (World.enemiesDestroyed >= 10) {
+                        World.level += 1;
+                        World.enemiesDestroyed = 0;
+                    }
+                    World.enemiesDestroyed += 1;
                 }
-                // TODO: Count clicks and on every X click increment steps to make it harder
             }))
         }
 
 		/*
 			As a next step, an appearing animation is created. For more information have a closer look at the function implementation.
 		*/
-		this.appearingAnimation = this.createAppearingAnimation(this.modelCar, 0.045);
+		this.appearingAnimation = this.createAppearingAnimation(this.modelGoose, 0.045);
 
 		/*
 			To receive a notification once the image target is inside the field of vision the onEnterFieldOfVision trigger of the AR.Trackable2DObject is used. In the example the function appear() is attached. Within the appear function the previously created AR.AnimationGroup is started by calling its start() function which plays the animation once.
 		*/
 		var trackable = new AR.Trackable2DObject(this.tracker, "*", {
 			drawables: {
-				cam: this.buttonsRotate.concat([this.modelCar])
+				cam: this.axes.concat([this.modelGoose])
 			},
 			onEnterFieldOfVision: this.appear,
 			onExitFieldOfVision: this.disappear
 		});
 	},
 
+    /*
+        Generate random offset for spawning axes
+    */
     getRandomOffset: function getRandomOffsetFn() {
         var minDistance = 0.2;
-        var randomNum = ((Math.random() * 2) - 1);
+        var randomNum = ((Math.random() * 4) - 2);
         if (randomNum >= 0 && randomNum <= minDistance) {
             randomNum += minDistance;
         }
@@ -100,26 +100,26 @@ var World = {
         return randomNum;
     },
 
-    updateCar: function updateCarFn() {
+    /*
+        Update the Augmented World, check game state, Move enemies (axes)
+    */
+    update: function updateFn() {
         if (World.loaded && World.trackableVisible && !World.isGameOver) {
 
-            // World.modelCar.translate.x += 0.001;
+            for (i = 0; i < World.axes.length; i++) {
+                var stepX = 0.001 * World.level;
+                var stepY = 0.001 * World.level;
 
-            for (i = 0; i < World.buttonsRotate.length; i++) {
-                // TODO variable steps
-                var stepX = 0.001;
-                var stepY = 0.001;
-
-                if (Math.abs(World.buttonsRotate[i].offsetX) <= stepX && Math.abs(World.buttonsRotate[i].offsetY) <= stepY) {
+                if (Math.abs(World.axes[i].offsetX) <= stepX && Math.abs(World.axes[i].offsetY) <= stepY) {
                     World.isGameOver = true;
                     break;
                 } else {
 
-                    if (World.buttonsRotate[i].offsetX >= 0) { stepX = stepX * -1; }
-                    World.buttonsRotate[i].offsetX += stepX;
+                    if (World.axes[i].offsetX >= 0) { stepX = stepX * -1; }
+                    World.axes[i].offsetX += stepX;
 
-                    if (World.buttonsRotate[i].offsetY >= 0) { stepY = stepY * -1; }
-                    World.buttonsRotate[i].offsetY += stepY;
+                    if (World.axes[i].offsetY >= 0) { stepY = stepY * -1; }
+                    World.axes[i].offsetY += stepY;
                 }
             }
 
@@ -132,9 +132,9 @@ var World = {
                     World.points = new Date().getTime();
 
                     // Reposition Enemies
-                    for (i = 0; i < World.buttonsRotate.length; i++) {
-                        World.buttonsRotate[i].offsetX = World.getRandomOffset();
-                        World.buttonsRotate[i].offsetY = World.getRandomOffset();
+                    for (i = 0; i < World.axes.length; i++) {
+                        World.axes[i].offsetX = World.getRandomOffset();
+                        World.axes[i].offsetY = World.getRandomOffset();
                     }
 
                 } else {
@@ -146,19 +146,18 @@ var World = {
     },
 
 	loadingStep: function loadingStepFn() {
-		if (!World.loaded && World.tracker.isLoaded() && World.modelCar.isLoaded()) {
+		if (!World.loaded && World.tracker.isLoaded() && World.modelGoose.isLoaded()) {
 			World.loaded = true;
 			
 			if ( World.trackableVisible && !World.appearingAnimation.isRunning() ) {
 				World.appearingAnimation.start();
 			}
-			
-						
+
 			var cssDivLeft = " style='display: table-cell;vertical-align: middle; text-align: right; width: 50%; padding-right: 15px;'";
 			var cssDivRight = " style='display: table-cell;vertical-align: middle; text-align: left;'";
 			document.getElementById('loadingMessage').innerHTML =
-				"<div" + cssDivLeft + ">Scan CarAd Tracker Image:</div>" +
-				"<div" + cssDivRight + "><img src='assets/car.png'></img></div>";
+				"<div" + cssDivLeft + ">Scan Tracker:</div>" +
+				"<div" + cssDivRight + "><img src='assets/fearofduck_mini.jpg'></img></div>";
 
 			// Remove Scan target message after 10 sec.
 			setTimeout(function() {
@@ -202,7 +201,7 @@ World.init();
 
 // !!!! Skipped 32 frames!  The application may be doing too much work on its main thread.
 // Start the game loop
-World._intervalId = setInterval(World.updateCar, 1000 / 50); // Game.fps = 50
+World._intervalId = setInterval(World.update, 1000 / 50); // Game.fps = 50
 
 
 // To stop the game, use the following:
